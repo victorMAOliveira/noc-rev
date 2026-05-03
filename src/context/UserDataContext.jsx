@@ -75,13 +75,30 @@ export function UserDataProvider({ children }) {
     setListComments(loadUser(userId, 'listComments', {}))
   }, [userId])
 
-  useEffect(() => userId && saveUser(userId, 'diary', diary), [userId, diary])
-  useEffect(() => userId && saveUser(userId, 'lists', lists), [userId, lists])
-  useEffect(() => userId && saveUser(userId, 'watchlist', watchlist), [userId, watchlist])
-  useEffect(() => userId && saveUser(userId, 'watchedEpisodes', watchedEpisodes), [userId, watchedEpisodes])
-  useEffect(() => userId && saveUser(userId, 'follows', follows), [userId, follows])
-  useEffect(() => userId && saveUser(userId, 'reviewLikes', reviewLikes), [userId, reviewLikes])
-  useEffect(() => userId && saveUser(userId, 'listComments', listComments), [userId, listComments])
+  // IMPORTANTE: nunca retorne valores não-undefined dessas effects.
+  // Um arrow `() => userId && saveUser(...)` retorna `null` quando userId é null,
+  // e o React 18 tenta chamar esse `null` como função de cleanup e quebra.
+  useEffect(() => {
+    if (userId) saveUser(userId, 'diary', diary)
+  }, [userId, diary])
+  useEffect(() => {
+    if (userId) saveUser(userId, 'lists', lists)
+  }, [userId, lists])
+  useEffect(() => {
+    if (userId) saveUser(userId, 'watchlist', watchlist)
+  }, [userId, watchlist])
+  useEffect(() => {
+    if (userId) saveUser(userId, 'watchedEpisodes', watchedEpisodes)
+  }, [userId, watchedEpisodes])
+  useEffect(() => {
+    if (userId) saveUser(userId, 'follows', follows)
+  }, [userId, follows])
+  useEffect(() => {
+    if (userId) saveUser(userId, 'reviewLikes', reviewLikes)
+  }, [userId, reviewLikes])
+  useEffect(() => {
+    if (userId) saveUser(userId, 'listComments', listComments)
+  }, [userId, listComments])
 
   /* Índice de Obras (Modelagem Universal — req. 3.2.1) */
   const registrarObraNoIndice = useCallback((obra) => {
