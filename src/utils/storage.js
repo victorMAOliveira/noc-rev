@@ -1,4 +1,5 @@
-// Tiny localStorage wrapper, namespaced under "nocrev:"
+// Wrapper minimalista sobre localStorage, namespaced em "nocrev:".
+// Usado pelos contextos para persistir dados sem servidor (protótipo).
 
 const PREFIX = 'nocrev:'
 
@@ -16,11 +17,17 @@ export function save(key, value) {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value))
   } catch {
-    /* quota or unavailable — ignore */
+    /* quota cheia ou ambiente sem localStorage — silenciar */
   }
 }
 
-// Stable IDs for ratings/reviews
-export const seriesKey = (seriesId) => `s${seriesId}`
-export const episodeKey = (seriesId, seasonNumber, episodeNumber) =>
-  `s${seriesId}_se${seasonNumber}_ep${episodeNumber}`
+export function remove(key) {
+  try {
+    localStorage.removeItem(PREFIX + key)
+  } catch {
+    /* ignorar */
+  }
+}
+
+/** Chave per-usuário — todos os dados são particionados por usuário logado. */
+export const userScoped = (userId, key) => `user:${userId}:${key}`

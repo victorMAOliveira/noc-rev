@@ -1,28 +1,39 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { tmdb, hasApiKey } from '../api/tmdb.js'
-import SeriesCard from '../components/SeriesCard.jsx'
+import { obraDeFilmeTmdb, obraDeSerieTmdb } from '../domain/factory.js'
+import ObraCard from '../components/ObraCard.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
+import { useUserData } from '../context/UserDataContext.jsx'
+import { calcularStreak } from '../utils/streak.js'
 
+/**
+ * Home — vitrine de descoberta. Carrega trendings de TMDB para SÉRIES e
+ * FILMES e os converte em Obras polimórficas (Modelagem Universal — req.
+ * 3.2.1). Quando o usuário está logado, exibe banner do streak (req. 3.2.6).
+ */
 export default function Home() {
-  const [trending, setTrending] = useState([])
-  const [popular, setPopular] = useState([])
+  const { autenticado } = useAuth()
+  const { diary } = useUserData()
+
+  const [trendingTv, setTrendingTv] = useState([])
+  const [trendingMovies, setTrendingMovies] = useState([])
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     if (!hasApiKey()) {
-      setError(
-        'No TMDB API key configured. Copy .env.example to .env and set VITE_TMDB_API_KEY, then restart `npm run dev`.',
-      )
+      setError('VITE_TMDB_API_KEY ausente. Configure o .env (ver README).')
       setLoading(false)
       return
     }
     setLoading(true)
-    Promise.all([tmdb.trending(), tmdb.popular()])
-      .then(([t, p]) => {
+    Promise.all([tmdb.trendingTv(), tmdb.trendingMovie()])
+      .then(([tv, mv]) => {
         if (cancelled) return
-        setTrending(t.results || [])
-        setPopular(p.results || [])
+        setTrendingTv((tv.results || []).map(obraDeSerieTmdb))
+        setTrendingMovies((mv.results || []).map(obraDeFilmeTmdb))
       })
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false))
@@ -31,29 +42,47 @@ export default function Home() {
     }
   }, [])
 
+  const streak = calcularStreak(diary)
+
   return (
     <div>
-      <h1 className="page-title">Discover series</h1>
-      {error && <div className="error">{error}</div>}
-      {loading && !error && <div className="muted">Loading…</div>}
+      <h1 className="page-title">Descobrir</h1>
+      {autenticado && (
+        <div className="streak-banner">
+          {streak.ativo ? (
+            <span>
+              🔥 Streak de <strong>{streak.semanas}</strong> semana
+              {streak.semanas > 1 ? 's' : ''}! Não perca o ritmo.
+            </span>
+          ) : (
+            <span>
+              Sem streak ativa. Registre algo no <Link to="/diario">diário</Link>{' '}
+              esta semana para iniciar uma ofensiva.
+            </span>
+          )}
+        </div>
+      )}
 
-      {trending.length > 0 && (
+      {error && <div className="error">{error}</div>}
+      {loading && !error && <div className="muted">Carregando…</div>}
+
+      {trendingTv.length > 0 && (
         <>
-          <h2 className="section-title">Trending this week</h2>
+          <h2 className="section-title">Séries em alta</h2>
           <div className="grid">
-            {trending.map((s) => (
-              <SeriesCard key={s.id} series={s} />
+            {trendingTv.map((o) => (
+              <ObraCard key={o.getIdentificadorUnico()} obra={o} />
             ))}
           </div>
         </>
       )}
 
-      {popular.length > 0 && (
+      {trendingMovies.length > 0 && (
         <>
-          <h2 className="section-title">Popular</h2>
+          <h2 className="section-title">Filmes em alta</h2>
           <div className="grid">
-            {popular.map((s) => (
-              <SeriesCard key={s.id} series={s} />
+            {trendingMovies.map((o) => (
+              <ObraCard key={o.getIdentificadorUnico()} obra={o} />
             ))}
           </div>
         </>
